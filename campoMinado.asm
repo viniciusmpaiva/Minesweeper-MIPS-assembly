@@ -5,6 +5,7 @@
 		
 	nw_line: .asciiz"\n" 
 	space_line: .asciiz "  "
+	option: .asciiz "Precione 1 para marcar um local ou 2 para selecionar um local: "
 	menu: .asciiz "====================Minesweeper=================="
 	u_line: .asciiz "Insira a linha: "
 	u_column: .asciiz "Insira a coluna: "
@@ -15,6 +16,13 @@
 		
 	defeat_msg_1: .asciiz "==========================================="
 	defeat_msg_2: .asciiz "===============VOCÊ PERDEU================="
+	invalid_op: .asciiz "Opção Inválida!"
+	marks: .asciiz "Numero de marcadores disponíveis: "
+	marks_error: .asciiz "Marque um local coberto!"
+	
+	
+	win_msg_1: .asciiz "===============VITÓRIA================="
+	win_msg_2: .asciiz "Você marcou todos os locais com bombas, Parabéns!"
 .text
 
 	.main:
@@ -26,15 +34,17 @@
 		la $a0, nw_line
 		syscall
 		jal init_bombs_idicators
+		jal printArray_M
 		li $v0, 4
 		la $a0, nw_line
 		syscall
 			
 		game_menu:		
-			li $t4, 10
 			li $s1, ' '
 			li $s2, '0'
-			li $s3, 4 
+			li $s3, 'B' # marcador de bombas
+			move $s6, $zero # Contador de marcações corretas
+			li $s7, 10 # numero de marcadores disponíveis
 			loop_game_menu:
 				li $v0, 4
 				la $a0, nw_line
@@ -45,7 +55,111 @@
 				li $v0, 4
 				la $a0, nw_line
 				syscall
+				
+				li $v0, 4
+				la $a0, option
+				syscall
+				
+				li $v0, 5
+				syscall
+				beq $v0, 1, mark_op
+				
+				beq $v0, 2, selec_op
+				
+				li $v0, 4
+				la $a0, nw_line
+				syscall
+				
+				li $v0, 4
+				la $a0, invalid_op
+				syscall
+				
+				li $v0, 10
+				syscall
+				
+						
+				
+				mark_op:
+				
+				li $v0, 4
+				la $a0, menu
+				syscall
 			
+				li $v0, 4
+				la $a0, nw_line
+				syscall
+				
+				li $v0, 4
+				la $a0, marks
+				syscall
+				
+				li $v0,1
+				move $a0, $s7
+				syscall
+				
+				li $v0, 4
+				la $a0, nw_line
+				syscall
+			
+				li $v0, 4
+				la $a0, u_line
+				syscall  
+			
+				li $v0, 5
+				syscall 
+				move $t1, $v0 #Valor da linha inserida ficará no registrador $t1
+			
+				li $v0, 4
+				la $a0, nw_line
+				syscall
+		
+				li $v0, 4
+				la $a0, u_column
+				syscall
+			
+				li $v0, 5
+				syscall 
+				move $t2, $v0 #Valor da coluna inserida ficará no registrador $t2
+			
+				li $v0, 4
+				la $a0, nw_line
+				syscall
+				
+				mul $t1, $t1, 10
+				add $t1, $t1, $t2
+				
+				lb $t2, Grid($t1)
+				beq $t2, 'X', print_B
+				li $v0, 4
+				la $a0, nw_line
+				syscall
+				li $v0, 4
+				la $a0, marks_error
+				syscall
+				j loop_game_menu
+				
+				print_B: 
+				sb $s3, Grid($t1)
+				mul $t1, $t1, 4
+				lw $t2, Array($t1)
+				subi $s7, $s7, 1
+				beq $t2, 9, got_bomb
+				beq $s7, 0, verify_win	
+				j loop_game_menu
+			
+				
+				got_bomb:
+				addi $s6, $s6, 1
+				beq $s7, 0, verify_win
+				j loop_game_menu
+				
+				
+				
+				
+				
+				
+				selec_op:
+				
 				li $v0, 4
 				la $a0, menu
 				syscall
@@ -81,27 +195,27 @@
 				#coluna esta no $t2
 				#Acesso ao indice informado pelo usuário - Formula: 10.linha +coluna
 				#o indice ficará em $t1
-				mul $t1, $t1, $t4
+				mul $t1, $t1, 10
 				add $t1, $t1, $t2
-				mul $t6, $t1, $s3 #Multiplicar por 4bytes
+				mul $t6, $t1, 4 #Multiplicar por 4bytes
 				
 				move $a0, $t6 #argumento do indice da matriz de inteiros para a função
 				move $a1, $t1 #argumento do indice da matriz de x para a função
+				
+				lw $s4, Array($t6)
+				beq $s4, 9, end_game
 				jal verify_bombs
 				
 				#$t6 é o indice para a matriz de inteiros
 				#$t1 é o indice para a matriz de X
-				lw $s4, Array($t6)
-				beq $s4, 9, end_game
 				 
-				sb $s1, Grid($t1)
 			
 				j loop_game_menu
 				
 			end_game:
 				
 				sb $s2, Grid($t1)
-				jal printGrid
+				jal printGrid_uncovered
 				
 				li $v0, 4
 				la $a0, nw_line
@@ -134,15 +248,173 @@
 			
 				li $v0, 10
 				syscall 
+
+
+
+			verify_win:
+			bne  $s6,10, end_game
+			li $v0, 4
+			la $a0, nw_line
+			syscall
+			li $v0, 4
+			la $a0, defeat_msg_1
+			syscall
+			li $v0, 4
+			la $a0, nw_line
+			syscall
+			li $v0, 4
+			la $a0, win_msg_1
+			syscall
+			li $v0, 4
+			la $a0, nw_line
+			syscall
+			li $v0, 4
+			la $a0, win_msg_2			
+			syscall
+			li $v0, 4
+			la $a0, nw_line
+			syscall
+			li $v0, 4
+			la $a0, defeat_msg_1
+			syscall	
+			
+			li $v0, 10
+			syscall 
+			
 		
 
+
+	printGrid_uncovered:
+	move $t0, $zero #indice
+		li $t2, 100 #tamanho matriz completa de char
+		li $t3, 10 #tamanho linha char
+		li $t4, 0 #contador de linhas
+		li $t5, '0'
+		loop_printArray_G_u:
+				beq $t0, $t2, out_print_G # se chegar em 100, vai para out_print
+				beq $t0, $t3, print_line_G # se chegar em $t3, vai para print_line
+				mul $t6, $t0, 4
+				lw $t6, Array($t6)
+				beq $t6, 9, print_0
+				
+				lb $a0, Grid($t0)
+				li $v0, 11
+				syscall
+				
+				li $v0,4
+				la $a0,space_line
+				syscall
+				 
+				addi $t0, $t0, 1
+				
+				j loop_printArray_G_u
+			print_0:
+				sb $t5, Grid($t0)
+				lb $a0, Grid($t0)
+				li $v0, 11
+				syscall
+				
+				li $v0,4
+				la $a0,space_line
+				syscall
+				 
+				addi $t0, $t0, 1
+				
+				j loop_printArray_G_u
+				
+			print_line_G_u:
+				
+				li $v0,4
+				la $a0,space_line
+				syscall
+				li $v0,4
+				la $a0,space_line
+				syscall
+				
+				li $v0,1
+				move $a0, $t4
+				syscall
+				
+				addi $t4, $t4, 1 
+				
+				li $v0, 4
+				la $a0, nw_line
+				syscall
+				
+				mul $t6, $t0, 4
+				lw $t6, Array($t6)
+				beq $t6, 9, print_0_line
+				
+				lb $a0, Grid($t0)
+				li $v0, 11
+				syscall
+				addi $t0, $t0, 1
+			
+				
+				li $v0,4
+				la $a0,space_line
+				syscall
+				
+				addi $t3, $t3, 10
+				j loop_printArray_G_u
+				
+			print_0_line:
+				sb $t5, Grid($t0)
+				lb $a0, Grid($t0)
+				li $v0, 11
+				syscall
+				
+				li $v0,4
+				la $a0,space_line
+				syscall
+				 
+				addi $t0, $t0, 1
+				li $v0,4
+				la $a0,space_line
+				syscall
+				
+				addi $t3, $t3, 10
+				
+				j loop_printArray_G_u
+				
+			out_print_G_u:
+				
+				li $v0,4
+				la $a0,space_line
+				syscall
+				li $v0,4
+				la $a0,space_line
+				syscall
+				li $v0,1
+				move $a0, $t4
+				syscall
+				li $t4, 0 #indice de colunas
+				li $t5,10
+				li $v0, 4
+				la $a0, nw_line
+				syscall
+				li $v0, 4
+				la $a0, nw_line
+				syscall
+				print_column_u:
+					beq $t4, $t5, out_print_column_u
+					li $v0,1
+					move $a0, $t4
+					syscall
+					li $v0,4
+					la $a0,space_line
+					syscall
+					addi $t4, $t4, 1 
+					j print_column_u
+				out_print_column_u:
+					jr $ra
+	
 
 	verify_bombs:
 		#$a0 indice da matriz de inteiros
 		#$a1 indice da matriz de chars
+		#a2 esta o char da matriz de chars
 		#quando o usuário digitar o valor da linha e da coluna, ira abrir se um espaço de 3x3 em volta do indice
-		lw $s6, Array($a0) #conteudo do indice da matriz de inteiros esta em $s6
-		lb $s7, Grid($a1) #conteudo do indice da matriz de inteiros esta em $s7
 		li $t2, '1'
 		li $t3, '2'
 		li $t5, '3'	
@@ -151,6 +423,20 @@
 		li $t9, '6'
 		li $s0, '7'
 		move $s5, $zero #contador
+		
+		lw $t4, Array($a0)
+		move $t0, $a1
+		beq $t4, 7, print_7
+		beq $t4, 6, print_6
+		beq $t4, 5, print_5
+		beq $t4, 4, print_4
+		beq $t4, 3, print_3
+		beq $t4, 2, print_2
+		beq $t4, 1, print_1
+		beq $t4, 0, print_
+		
+		#verifica qual numero do indice selecionado
+		
 		
 		#Caso Geral
 		
@@ -261,85 +547,118 @@
 		beq $t4, 0, print_
 			
 		print_7:
-		sb $s0,Grid($t0) 
 		addi $s5, $s5, 1
-		beq $s5, 1, jump_1
-		beq $s5, 2, jump_2
-		beq $s5, 3, jump_3
-		beq $s5, 4, jump_4
-		beq $s5, 5, jump_5
-		beq $s5, 6, jump_6
-		beq $s5, 7, out_verify
+		lb $t4, Grid($t0)
+		beq $t4, $s3, no_print 
+		sb $s0,Grid($t0) 
+		beq $s5, 1, jump_0
+		beq $s5, 2, jump_1
+		beq $s5, 3, jump_2
+		beq $s5, 4, jump_3
+		beq $s5, 5, jump_4
+		beq $s5, 6, jump_5
+		beq $s5, 7, jump_6
+		beq $s5, 8, out_verify
 		
 		print_6:
-		sb $t9,Grid($t0) 
+		lb $t4, Grid($t0)
 		addi $s5, $s5, 1
-		beq $s5, 1, jump_1
-		beq $s5, 2, jump_2
-		beq $s5, 3, jump_3
-		beq $s5, 4, jump_4
-		beq $s5, 5, jump_5
-		beq $s5, 6, jump_6
-		beq $s5, 7, out_verify
+		beq $t4, $s3, no_print 
+		sb $t9,Grid($t0)
+		beq $s5, 1, jump_0
+		beq $s5, 2, jump_1
+		beq $s5, 3, jump_2
+		beq $s5, 4, jump_3
+		beq $s5, 5, jump_4
+		beq $s5, 6, jump_5
+		beq $s5, 7, jump_6
+		beq $s5, 8, out_verify
 		
 		print_5:
-		sb $t8,Grid($t0) 
+		lb $t4, Grid($t0)
 		addi $s5, $s5, 1
-		beq $s5, 1, jump_1
-		beq $s5, 2, jump_2
-		beq $s5, 3, jump_3
-		beq $s5, 4, jump_4
-		beq $s5, 5, jump_5
-		beq $s5, 6, jump_6
-		beq $s5, 7, out_verify
+		beq $t4, $s3, no_print
+		sb $t8,Grid($t0)
+		beq $s5, 1, jump_0
+		beq $s5, 2, jump_1
+		beq $s5, 3, jump_2
+		beq $s5, 4, jump_3
+		beq $s5, 5, jump_4
+		beq $s5, 6, jump_5
+		beq $s5, 7, jump_6
+		beq $s5, 8, out_verify
 		
 		print_4:
-		sb $t7,Grid($t0) 
+		lb $t4, Grid($t0)
 		addi $s5, $s5, 1
-		beq $s5, 1, jump_1
-		beq $s5, 2, jump_2
-		beq $s5, 3, jump_3
-		beq $s5, 4, jump_4
-		beq $s5, 5, jump_5
-		beq $s5, 6, jump_6
-		beq $s5, 7, out_verify
+		beq $t4, $s3, no_print
+		sb $t7,Grid($t0)
+		beq $s5, 1, jump_0
+		beq $s5, 2, jump_1
+		beq $s5, 3, jump_2
+		beq $s5, 4, jump_3
+		beq $s5, 5, jump_4
+		beq $s5, 6, jump_5
+		beq $s5, 7, jump_6
+		beq $s5, 8, out_verify
 		
 		print_3:
-		sb $t5,Grid($t0) 
+		lb $t4, Grid($t0)
 		addi $s5, $s5, 1
-		beq $s5, 1, jump_1
-		beq $s5, 2, jump_2
-		beq $s5, 3, jump_3
-		beq $s5, 4, jump_4
-		beq $s5, 5, jump_5
-		beq $s5, 6, jump_6
-		beq $s5, 7, out_verify
+		beq $t4, $s3, no_print
+		sb $t5,Grid($t0) 
+		beq $s5, 1, jump_0
+		beq $s5, 2, jump_1
+		beq $s5, 3, jump_2
+		beq $s5, 4, jump_3
+		beq $s5, 5, jump_4
+		beq $s5, 6, jump_5
+		beq $s5, 7, jump_6
+		beq $s5, 8, out_verify
 		
 		print_2:
-		sb $t3,Grid($t0) 
+		lb $t4, Grid($t0)
 		addi $s5, $s5, 1
-		beq $s5, 1, jump_1
-		beq $s5, 2, jump_2
-		beq $s5, 3, jump_3
-		beq $s5, 4, jump_4
-		beq $s5, 5, jump_5
-		beq $s5, 6, jump_6
-		beq $s5, 7, out_verify
+		beq $t4, $s3, no_print
+		sb $t3,Grid($t0)
+		beq $s5, 1, jump_0
+		beq $s5, 2, jump_1
+		beq $s5, 3, jump_2
+		beq $s5, 4, jump_3
+		beq $s5, 5, jump_4
+		beq $s5, 6, jump_5
+		beq $s5, 7, jump_6
+		beq $s5, 8, out_verify
 		
 		print_1:
-		sb $t2,Grid($t0) 
+		lb $t4, Grid($t0)
 		addi $s5, $s5, 1
-		beq $s5, 1, jump_1
-		beq $s5, 2, jump_2
-		beq $s5, 3, jump_3
-		beq $s5, 4, jump_4
-		beq $s5, 5, jump_5
-		beq $s5, 6, jump_6
-		beq $s5, 7, out_verify
+		beq $t4, $s3, no_print
+		sb $t2,Grid($t0) 
+		beq $s5, 1, jump_0
+		beq $s5, 2, jump_1
+		beq $s5, 3, jump_2
+		beq $s5, 4, jump_3
+		beq $s5, 5, jump_4
+		beq $s5, 6, jump_5
+		beq $s5, 7, jump_6
+		beq $s5, 8, out_verify
 		
 		print_:
-		sb $s1,Grid($t0) 
+		lb $t4, Grid($t0)
 		addi $s5, $s5, 1
+		beq $t4, $s3, no_print
+		sb $s1,Grid($t0)
+		beq $s5, 1, jump_0
+		beq $s5, 2, jump_1
+		beq $s5, 3, jump_2
+		beq $s5, 4, jump_3
+		beq $s5, 5, jump_4
+		beq $s5, 6, jump_5
+		beq $s5, 7, jump_6
+		beq $s5, 8, out_verify
+		
+		no_print:
 		beq $s5, 1, jump_1
 		beq $s5, 2, jump_2
 		beq $s5, 3, jump_3
@@ -347,19 +666,22 @@
 		beq $s5, 5, jump_5
 		beq $s5, 6, jump_6
 		beq $s5, 7, out_verify
-		
 		
 
 		found_bomb:
 		addi $s5, $s5, 1
-		beq $s5, 1, jump_1
-		beq $s5, 2, jump_2
-		beq $s5, 3, jump_3
-		beq $s5, 4, jump_4
-		beq $s5, 5, jump_5
-		beq $s5, 6, jump_6
-		beq $s5, 7, out_verify
+		beq $s5, 1, jump_0
+		beq $s5, 2, jump_1
+		beq $s5, 3, jump_2
+		beq $s5, 4, jump_3
+		beq $s5, 5, jump_4
+		beq $s5, 6, jump_5
+		beq $s5, 7, jump_6
+		beq $s5, 8, out_verify
 		
+		
+		jump_0:
+		j continue_verify_0
 		jump_1:
 		j continue_verify_1
 		
@@ -542,7 +864,7 @@
 			sll $t0, $t0, 2 #Então é multiplicado por 4
 			
 			lw $t4,Array($t0) #O Valor da posição $t0 é carregado para $t4
-			beq $t4,$t0, loop_place_bombs# Se o valor de $t4 for igual ao $t0, um novo numero aleatório é calculado 
+			beq $t4,9, loop_place_bombs# Se o valor de $t4 for igual ao $t0, um novo numero aleatório é calculado 
 			sw $t1, Array($t0)#
 			subi $t2, $t2, 1
 			j loop_place_bombs
