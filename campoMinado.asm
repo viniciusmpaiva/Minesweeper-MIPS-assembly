@@ -13,7 +13,8 @@
 		.align 0
 		.space 100	
 		
-	defeat_msg: .asciiz "Derrota!"
+	defeat_msg_1: .asciiz "==========================================="
+	defeat_msg_2: .asciiz "===============VOCÊ PERDEU================="
 .text
 
 	.main:
@@ -28,16 +29,13 @@
 		li $v0, 4
 		la $a0, nw_line
 		syscall
-		jal printArray_M
 			
 		game_menu:		
 			li $t4, 10
 			li $s1, ' '
 			li $s2, '0'
-			li $s3, 4
+			li $s3, 4 
 			loop_game_menu:
-				li $t5, 1
-				beq $s4, $t5, end_game
 				li $v0, 4
 				la $a0, nw_line
 				syscall
@@ -79,16 +77,22 @@
 				li $v0, 4
 				la $a0, nw_line
 				syscall
-				
+				#linha esta no $t1
+				#coluna esta no $t2
 				#Acesso ao indice informado pelo usuário - Formula: 10.linha +coluna
 				#o indice ficará em $t1
 				mul $t1, $t1, $t4
 				add $t1, $t1, $t2
 				mul $t6, $t1, $s3 #Multiplicar por 4bytes
 				
+				move $a0, $t6 #argumento do indice da matriz de inteiros para a função
+				move $a1, $t1 #argumento do indice da matriz de x para a função
+				jal verify_bombs
+				
 				#$t6 é o indice para a matriz de inteiros
 				#$t1 é o indice para a matriz de X
 				lw $s4, Array($t6)
+				beq $s4, 9, end_game
 				 
 				sb $s1, Grid($t1)
 			
@@ -98,14 +102,284 @@
 				
 				sb $s2, Grid($t1)
 				jal printGrid
+				
+				li $v0, 4
+				la $a0, nw_line
+				syscall
+				
+				li $v0, 4
+				la $a0, nw_line
+				syscall
+				
+				li $v0, 4
+				la $a0, defeat_msg_1
+				syscall
+				
+				li $v0, 4
+				la $a0, nw_line
+				syscall
+				
+				li $v0, 4
+				la $a0, defeat_msg_2
+				syscall
+				
+				li $v0, 4
+				la $a0, nw_line
+				syscall
+				
+				li $v0, 4
+				la $a0, defeat_msg_1
+				syscall			
+				
 			
 				li $v0, 10
 				syscall 
 		
 
 
+	verify_bombs:
+		#$a0 indice da matriz de inteiros
+		#$a1 indice da matriz de chars
+		#quando o usuário digitar o valor da linha e da coluna, ira abrir se um espaço de 3x3 em volta do indice
+		lw $s6, Array($a0) #conteudo do indice da matriz de inteiros esta em $s6
+		lb $s7, Grid($a1) #conteudo do indice da matriz de inteiros esta em $s7
+		li $t2, '1'
+		li $t3, '2'
+		li $t5, '3'	
+		li $t7, '4'
+		li $t8, '5'
+		li $t9, '6'
+		li $s0, '7'
+		move $s5, $zero #contador
+		
+		#Caso Geral
+		
+		continue_verify_0:	
+		#1: ira verificar na esquerda horizontal
+		subi $t4, $a0, 4
+		subi $t0, $a1,1
+		lw $t4, Array($t4) 
+		beq $t4, 9, found_bomb
+		beq $t4, 7, print_7
+		beq $t4, 6, print_6
+		beq $t4, 5, print_5
+		beq $t4, 4, print_4
+		beq $t4, 3, print_3
+		beq $t4, 2, print_2
+		beq $t4, 1, print_1
+		beq $t4, 0, print_
+		
+		continue_verify_1:
+		#2: ira verificar na esquerda inclinada para cima
+		
+		subi $t4, $a0, 44
+		subi $t0, $a1, 11
+		lw $t4, Array($t4) 
+		beq $t4, 9, found_bomb
+		beq $t4, 7, print_7
+		beq $t4, 6, print_6
+		beq $t4, 5, print_5
+		beq $t4, 4, print_4
+		beq $t4, 3, print_3
+		beq $t4, 2, print_2
+		beq $t4, 1, print_1
+		beq $t4, 0, print_
+		
+		continue_verify_2:
+		#3: ira verificar na vertical para cima
+		subi $t4, $a0, 40
+		subi $t0, $a1, 10 
+		lw $t4, Array($t4)
+		beq $t4, 9, found_bomb
+		beq $t4, 7, print_7
+		beq $t4, 6, print_6
+		beq $t4, 5, print_5
+		beq $t4, 4, print_4
+		beq $t4, 3, print_3
+		beq $t4, 2, print_2
+		beq $t4, 1, print_1
+		beq $t4, 0, print_
+		
+		continue_verify_3:
+		#4: ira verificar na direita inclinada para cima
+		subi $t4, $a0, 36
+		subi $t0, $a1, 9 
+		lw $t4, Array($t4)
+		beq $t4, 9, found_bomb
+		beq $t4, 7, print_7
+		beq $t4, 6, print_6
+		beq $t4, 5, print_5
+		beq $t4, 4, print_4
+		beq $t4, 3, print_3
+		beq $t4, 2, print_2
+		beq $t4, 1, print_1
+		beq $t4, 0, print_		
+		
+		continue_verify_4:
+		#5: ira verificar na direita horizontal
+		addi $t4, $a0,4
+		addi $t0, $a1, 1  
+		lw $t4, Array($t4)
+		beq $t4, 9, found_bomb
+		beq $t4, 7, print_7
+		beq $t4, 6, print_6
+		beq $t4, 5, print_5
+		beq $t4, 4, print_4
+		beq $t4, 3, print_3
+		beq $t4, 2, print_2
+		beq $t4, 1, print_1
+		beq $t4, 0, print_
+		
+		continue_verify_5:
+		#6: ira verificar na vertical para baixo
+		addi $t4, $a0, 40
+		addi $t0, $a1, 10 
+		lw $t4, Array($t4)
+		beq $t4, 9, found_bomb
+		beq $t4, 7, print_7
+		beq $t4, 6, print_6
+		beq $t4, 5, print_5
+		beq $t4, 4, print_4
+		beq $t4, 3, print_3
+		beq $t4, 2, print_2
+		beq $t4, 1, print_1
+		beq $t4, 0, print_
 
+		continue_verify_6:
+		#6: ira verificar na esquerda inclinada para baixo
+		addi $t4, $a0, 36
+		addi $t0, $a1,9 
+		lw $t4, Array($t4)
+		beq $t4, 9, found_bomb
+		beq $t4, 7, print_7
+		beq $t4, 6, print_6
+		beq $t4, 5, print_5
+		beq $t4, 4, print_4
+		beq $t4, 3, print_3
+		beq $t4, 2, print_2
+		beq $t4, 1, print_1
+		beq $t4, 0, print_
+			
+		print_7:
+		sb $s0,Grid($t0) 
+		addi $s5, $s5, 1
+		beq $s5, 1, jump_1
+		beq $s5, 2, jump_2
+		beq $s5, 3, jump_3
+		beq $s5, 4, jump_4
+		beq $s5, 5, jump_5
+		beq $s5, 6, jump_6
+		beq $s5, 7, out_verify
+		
+		print_6:
+		sb $t9,Grid($t0) 
+		addi $s5, $s5, 1
+		beq $s5, 1, jump_1
+		beq $s5, 2, jump_2
+		beq $s5, 3, jump_3
+		beq $s5, 4, jump_4
+		beq $s5, 5, jump_5
+		beq $s5, 6, jump_6
+		beq $s5, 7, out_verify
+		
+		print_5:
+		sb $t8,Grid($t0) 
+		addi $s5, $s5, 1
+		beq $s5, 1, jump_1
+		beq $s5, 2, jump_2
+		beq $s5, 3, jump_3
+		beq $s5, 4, jump_4
+		beq $s5, 5, jump_5
+		beq $s5, 6, jump_6
+		beq $s5, 7, out_verify
+		
+		print_4:
+		sb $t7,Grid($t0) 
+		addi $s5, $s5, 1
+		beq $s5, 1, jump_1
+		beq $s5, 2, jump_2
+		beq $s5, 3, jump_3
+		beq $s5, 4, jump_4
+		beq $s5, 5, jump_5
+		beq $s5, 6, jump_6
+		beq $s5, 7, out_verify
+		
+		print_3:
+		sb $t5,Grid($t0) 
+		addi $s5, $s5, 1
+		beq $s5, 1, jump_1
+		beq $s5, 2, jump_2
+		beq $s5, 3, jump_3
+		beq $s5, 4, jump_4
+		beq $s5, 5, jump_5
+		beq $s5, 6, jump_6
+		beq $s5, 7, out_verify
+		
+		print_2:
+		sb $t3,Grid($t0) 
+		addi $s5, $s5, 1
+		beq $s5, 1, jump_1
+		beq $s5, 2, jump_2
+		beq $s5, 3, jump_3
+		beq $s5, 4, jump_4
+		beq $s5, 5, jump_5
+		beq $s5, 6, jump_6
+		beq $s5, 7, out_verify
+		
+		print_1:
+		sb $t2,Grid($t0) 
+		addi $s5, $s5, 1
+		beq $s5, 1, jump_1
+		beq $s5, 2, jump_2
+		beq $s5, 3, jump_3
+		beq $s5, 4, jump_4
+		beq $s5, 5, jump_5
+		beq $s5, 6, jump_6
+		beq $s5, 7, out_verify
+		
+		print_:
+		sb $s1,Grid($t0) 
+		addi $s5, $s5, 1
+		beq $s5, 1, jump_1
+		beq $s5, 2, jump_2
+		beq $s5, 3, jump_3
+		beq $s5, 4, jump_4
+		beq $s5, 5, jump_5
+		beq $s5, 6, jump_6
+		beq $s5, 7, out_verify
+		
+		
 
+		found_bomb:
+		addi $s5, $s5, 1
+		beq $s5, 1, jump_1
+		beq $s5, 2, jump_2
+		beq $s5, 3, jump_3
+		beq $s5, 4, jump_4
+		beq $s5, 5, jump_5
+		beq $s5, 6, jump_6
+		beq $s5, 7, out_verify
+		
+		jump_1:
+		j continue_verify_1
+		
+		jump_2:
+		j continue_verify_2 
+		
+		jump_3:
+		j continue_verify_3
+		
+		jump_4:
+		j continue_verify_4
+		
+		jump_5:
+		j continue_verify_5
+		
+		jump_6:
+		j continue_verify_6
+		
+		out_verify:
+		jr $ra
 
 	init_M:
 		move $t0, $zero #indice
@@ -143,10 +417,10 @@
 				li $v0, 4
 				la $a0, nw_line
 				syscall
-				addi $t0, $t0, 4
 				li $v0, 1
 				lw $a0, Array($t0)
 				syscall
+				addi $t0, $t0, 4
 				li $v0,4
 				la $a0,space_line
 				syscall
@@ -210,11 +484,11 @@
 				la $a0, nw_line
 				syscall
 				
-				addi $t0, $t0, 1
-				
 				lb $a0, Grid($t0)
 				li $v0, 11
 				syscall
+				addi $t0, $t0, 1
+			
 				
 				li $v0,4
 				la $a0,space_line
@@ -278,91 +552,88 @@
 	
 	init_bombs_idicators:
 		li $t0, 400 #tamanho do vetor
+		li $s0, 9
 		move $t1, $zero #indice
 		li $s1, 40 #indice para o caso especial 5
-		li $s2, 360 #indice para o caso especial 4 e 8
-		li $t2, 36 #indice para o caso especial 2 e 3
+		li $s2, 360 #indice para o caso especial 4
+		li $t9, 364 #indice para o caso especial 8
+		li $s7, 36 #indice para o caso especial 2 e 3
 		li $s3, 396 #indice para o caso especial 6
 		li $s4, 76 #indice para o caso especial 7
 		init_bombs_idicators_looping:
 			beq $t1, $t0,init_bombs_idicators_out 
 			 
 			#primeiro irá verificar se tem bomba
-			li $s0, 9
 			lw $s6, Array($t1) #Valor do indice colocado em $s6
 			beq $s0, $s6, continue_looping #o inidice selecionado possui uma bomba
-			
-			move $s5, $zero #contador de bombas para cada indice
-			
 			#Casos Especiais
 			
 			beq $t1, $zero, special_case_1 #indice 0:0
-			blt $t1, $t2, special_case_2 # primeira linha
-			beq $t1, $t2, special_case_3 # indice 0:9
-			beq $t1, $s2, special_case_4 # indice 9:0
+			blt $t1, $s7, special_case_2 # primeira linha
+			beq $t1, $s7, special_case_3 # indice 0:9
 			beq $t1, $s1, special_case_5# primeira coluna
-			beq $t1, $s3, special_case_6 #indice 9:9
-			beq $t1, $s4, special_case_7 #ultima coluna			
-			bgt $t1, $s2, special_case_8 #ultima linha
+			beq $t1, $s4, special_case_7 #ultima coluna
+			beq $t1, $s2, special_case_4 # indice 9:0
+			beq $t1, $t9, special_case_8 #ultima linha
+			beq $t1, $s3, special_case_6 #indice 9:9			
 			
 			#Caso Geral:
+			move $s5, $zero #contador de bombas para cada indice
 			
-			#horizontal esquerda:
-			subi $t4, $t1, 4#Irá verificar se tem bomba no lado esquerdo horizontal
+			#ira verificar se tem bomba no lado esquerdo inclinado inferior
+			addi $t4, $t1, 36
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_g_1
-		 	addi $s5, $s5, 1
+		 	addi $s5, $s5 1
 		 	
-		 	no_bomb_g_1:
-			
-			#inclinado superior esquerdo:
-			subi $t4, $t1, 44
+		 	no_bomb_g_1: 
+		 	#ira verificar se tem bomba na vertical para baixo
+		 	addi $t4, $t1, 40
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_g_2
 		 	addi $s5, $s5, 1
-			
-			no_bomb_g_2:
-			
-			#Vertical para cima:
-			subi $t4, $t1, 40
+		 	
+		 	no_bomb_g_2:
+		 	#ira verificar se tem bomba no lado direito inclinado inferior
+		 	addi $t4, $t1, 44
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
-		 	bne  $t5, $s0, no_bomb_g_3
+		 	bne $t5, $s0, no_bomb_g_3
 		 	addi $s5, $s5, 1
 			
-			no_bomb_g_3:
 			
-			#inclinado superior direito:
-			subi $t4, $t1, 36
+			no_bomb_g_3:
+			#horizontal esquerda:
+			subi $t4, $t1, 4#Irá verificar se tem bomba no lado esquerdo horizontal
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_g_4
 		 	addi $s5, $s5, 1
 		 	
 		 	no_bomb_g_4:
-		 	
-		 	#horizontal direita:
-		 	addi $t4, $t1, 4
+			
+			#inclinado superior esquerdo:
+			subi $t4, $t1, 44
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_g_5
 		 	addi $s5, $s5, 1
-		 	
-		 	no_bomb_g_5:
-		 	
-		 	#inclinado inferior direito:
-		 	addi $t4, $t1, 44
+			
+			no_bomb_g_5:
+			
+			#Vertical para cima:
+			subi $t4, $t1, 40
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_g_6
 		 	addi $s5, $s5, 1
-		 	
-		 	no_bomb_g_6:
-		 	
-		 	#vertical para baixo:
-		 	addi $t4, $t1, 40
+			
+			no_bomb_g_6:
+			
+			#inclinado superior direito:
+			subi $t4, $t1, 36
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_g_7
@@ -370,20 +641,23 @@
 		 	
 		 	no_bomb_g_7:
 		 	
-		 	#inclinado inferior esquerdo:
-		 	addi $t4, $t1, 36
+		 	#horizontal direita:
+		 	addi $t4, $t1, 4
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, end_no_bomb
 		 	addi $s5, $s5, 1
+		 
 			
 			end_no_bomb:
 			sw $s5, Array($t1)
 			addi $t1, $t1, 4
+			move $t4, $zero
 			j init_bombs_idicators_looping
 			
 			continue_looping:
 			addi $t1, $t1, 4
+			move $t4, $zero
 			j init_bombs_idicators_looping
 			
 			init_bombs_idicators_out:
@@ -403,13 +677,13 @@
 		 	addi $t8, $t8, 1
 		 	
 		 	special_case_1_continue_1:
-		 	lw $t6, Array($t3)
-		 	bne  $t6, $s0, special_case_1_continue_11
+		 	lw $t5, Array($t3)
+		 	bne  $t5, $s0, special_case_1_continue_11
 		 	addi $t8, $t8, 1
 		 	
 		 	special_case_1_continue_11:
-		 	lw $t7, Array($t4)
-		 	bne  $t7, $s0, special_case_1_continue_10
+		 	lw $t5, Array($t4)
+		 	bne  $t5, $s0, special_case_1_continue_10
 		 	addi $t8, $t8, 1
 		 	
 		 	special_case_1_continue_10:
@@ -417,57 +691,56 @@
 		 	addi $t1, $t1, 4
 		 	j init_bombs_idicators_looping
 		 	
-		 special_case_2:
+		 special_case_2: # primeira linha
 		 
 		 	
 		 	special_case_2_looping:
-		 	lw $t3, Array($t2) #valor do indice esta em $t3
+		 	lw $t3, Array($t1) #valor do indice esta em $t3
 		 	
 		 	beq $t3, $s0,special_case_2_continue #caso $t3 seja uma bomba, pule
+		 	move $t3, $zero
 		 	
-		 	subi $t4, $t2, 4#Irá verificar se tem bomba no lado esquerdo horizontal
+		 	subi $t4, $t1, 4#Irá verificar se tem bomba no lado esquerdo horizontal
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_1
 		 	addi $t3, $t3, 1
 		 	
 		 	no_bomb_1: #irá verificar se tem bomba no lado esquerdo inclinado
-		 	addi $t4, $t2, 36
+		 	addi $t4, $t1, 36
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_2
 		 	addi $t3, $t3, 1
 		 	
 		 	no_bomb_2: #ira verificar se tem bomba na vertical para baixo
-		 	addi $t4, $t2, 40
+		 	addi $t4, $t1, 40
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_3
 		 	addi $t3, $t3, 1
 		 	
 		 	no_bomb_3: #ira verificar se tem bomba no lado direito inclinado
-			addi $t4, $t2, 44
+			addi $t4, $t1, 44
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_4
 		 	addi $t3, $t3, 1
 		 	
 		 	no_bomb_4: #ira verificar se tem bomba no lado direito na horizontal
-		 	addi $t4, $t2, 4
+		 	addi $t4, $t1, 4
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_5
 		 	addi $t3, $t3, 1
 		 	
 		 	no_bomb_5:
-		 	sw $t3, Array($t2)
+		 	sw $t3, Array($t1)
 		 	move $t4, $zero
-		 	addi $t2, $t2, 4
 		 	addi $t1, $t1, 4
 			j init_bombs_idicators_looping
 		 	
 		 	special_case_2_continue:
-		 	addi $t2, $t2, 4
 		 	move $t4, $zero
 		 	addi $t1, $t1, 4
 		 	j init_bombs_idicators_looping
@@ -526,9 +799,10 @@
 		 
 		 special_case_5:
 		 	special_case_5_looping:
-		 	lw $t3, Array($s1) #valor do indice esta em $t3
+		 	move $t3, $zero
+		 	lw $t2, Array($s1) #valor do indice esta em $t2
 		 	
-		 	beq $t3, $s0,special_case_5_continue #caso $t3 seja uma bomba, saia
+		 	beq $t2, $s0,special_case_5_continue #caso $t3 seja uma bomba, saia
 		 	
 		 	subi $t4, $s1, 40#Irá verificar se tem bomba em cima na vertical
 		 	lw $t5, Array($t4)
@@ -537,7 +811,7 @@
 		 	addi $t3, $t3, 1
 		 	
 		 	no_bomb_5_1: #irá verificar se tem bomba no lado direito inclinado
-		 	addi $t4, $s1, 44
+		 	subi $t4, $s1, 36
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_5_2
@@ -550,25 +824,40 @@
 		 	bne  $t5, $s0, no_bomb_5_3
 		 	addi $t3, $t3, 1
 		 	
-		 	no_bomb_5_3: #ira verificar se tem bomba na vertical para baixo
-		 	addi $t4, $s1, 40
+		 	no_bomb_5_3: #ira verificar se tem bomba na inclinada para baixo
+		 	addi $t4, $s1, 44
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_5_4
 		 	addi $t3, $t3, 1
 		 	
 		 	no_bomb_5_4:
+		 	addi $t4, $s1, 40
+		 	lw $t5, Array($t4)
+		 	move $t4, $zero
+		 	bne  $t5, $s0, no_bomb_5_5
+		 	addi $t3, $t3, 1
+		 	
+		 	no_bomb_5_5:
 		 	sw $t3, Array($s1)
 		 	addi $s1, $s1, 40
-		 	addi $t2, $t2, 4
-		 	move $t4, $zero
-			j init_bombs_idicators_looping
-		 	
-		 	special_case_5_continue:
-		 	addi $s1, $s1, 40
+		 	beq $s1, $s2, especial_case_4_prolem
 		 	addi $t1, $t1, 4
 		 	move $t4, $zero
 		 	j init_bombs_idicators_looping
+		 	
+		 	special_case_5_continue:
+		 	addi $s1, $s1, 40
+		 	beq $s1, $s2, especial_case_4_prolem
+		 	addi $t1, $t1, 4
+		 	move $t4, $zero
+		 	j init_bombs_idicators_looping
+		 	
+		 	especial_case_4_prolem:
+		 	addi $t1, $t1, 4
+		 	move $s1, $zero
+		 	move $t4, $zero
+			j init_bombs_idicators_looping
 		 	
 		 	
 		 special_case_6:
@@ -597,47 +886,47 @@
 		 	j init_bombs_idicators_looping
 		 	
 		 special_case_7:
-		 	
 		 	special_case_7_looping:
 		 	lw $t3, Array($s4) #valor do indice esta em $t3
 		 	
 		 	beq $t3, $s0,special_case_7_continue #caso $t3 seja uma bomba, saia
 		 	
+		 	move $t3, $zero
 		 	subi $t4, $s4, 40#Irá verificar se tem bomba em cima na vertical
-		 	lw $t5, Array($s4)
+		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_7_1
 		 	addi $t3, $t3, 1
 		 	
-		 	no_bomb_7_1: #irá verificar se tem bomba no lado direito inclinado
+		 	no_bomb_7_1: #irá verificar se tem bomba no lado esquerdo inclinado
 		 	subi $t4, $s4, 44
-		 	lw $t5, Array($s4)
+		 	lw $t5, Array($t4)
 			move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_7_2
 		 	addi $t3, $t3, 1
 		 	
-		 	no_bomb_7_2: #ira verificar se tem bomba na horizontal para a direita
+		 	no_bomb_7_2: #ira verificar se tem bomba na horizontal para a esquerda
 		 	subi $t4, $s4, 4
-		 	lw $t5, Array($s4)
+		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_7_3
 		 	addi $t3, $t3, 1
 		 	
-		 	no_bomb_7_3: #ira verificar se tem bomba no lado direito inclinado
+		 	no_bomb_7_3: #ira verificar se tem bomba no lado esquerdo inclinado inferior
 			addi $t4, $s4, 36
-		 	lw $t5, Array($s4)
+		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_7_4
 		 	addi $t3, $t3, 1
 		 	
 		 	no_bomb_7_4: #ira verificar se tem bomba na vertical para baixo
 		 	addi $t4, $s4, 40
-		 	lw $t5, Array($s4)
+		 	lw $t5, Array($t4)
 		 	move $t4, $zero
-		 	bne  $t5, $s0, no_bomb_7
+		 	bne  $t5, $s0, no_bomb_7_5
 		 	addi $t3, $t3, 1
 		 	
-		 	no_bomb_7:
+		 	no_bomb_7_5:
 		 	sw $t3, Array($s4)
 		 	addi $s4, $s4, 40
 		 	move $t4, $zero
@@ -648,60 +937,56 @@
 		 	addi $s4, $s4, 40
 		 	addi $t1, $t1, 4
 		 	move $t4, $zero
-		 	move $t4, $zero
 		 	j init_bombs_idicators_looping
 		 	
 		 	
 		 special_case_8:
 		 	special_case_8_looping:
-		 	lw $t3, Array($s2) #valor do indice esta em $t3
+		 	move $t3, $zero
 		 	
-		 	beq $t3, $s0,special_case_8_continue #caso $t3 seja uma bomba, pule
-		 	
-		 	subi $t4, $s2, 4#Irá verificar se tem bomba no lado esquerdo horizontal
+		 	subi $t4, $t1, 4#Irá verificar se tem bomba no lado esquerdo horizontal
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_1_8
 		 	addi $t3, $t3, 1
 		 	
 		 	no_bomb_1_8: #irá verificar se tem bomba no lado esquerdo inclinado
-		 	subi $t4, $s2, 44
+		 	subi $t4, $t1, 44
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_2_8
 		 	addi $t3, $t3, 1
 		 	
 		 	no_bomb_2_8: #ira verificar se tem bomba na vertical para cima
-		 	subi $t4, $s2, 40
+		 	subi $t4, $t1, 40
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
-		 	bne  $t5, $s0, no_bomb_3
+		 	bne  $t5, $s0, no_bomb_3_8
 		 	addi $t3, $t3, 1
 		 	
 		 	no_bomb_3_8: #ira verificar se tem bomba no lado direito inclinado
-			subi $t4, $s2, 36
+			subi $t4, $t1, 36
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_4_8
 		 	addi $t3, $t3, 1
 		 	
 		 	no_bomb_4_8: #ira verificar se tem bomba no lado direito na horizontal
-		 	addi $t4, $s2, 4
+		 	addi $t4, $t1, 4
 		 	lw $t5, Array($t4)
 		 	move $t4, $zero
 		 	bne  $t5, $s0, no_bomb_5_8
 		 	addi $t3, $t3, 1
 		 	
 		 	no_bomb_5_8:
-		 	sw $t3, Array($s2)
-		 	move $t4, $zero
-		 	addi $s2, $s2, 4
+		 	sw $t3, Array($t1)
+		 	li $t4, 396
 		 	addi $t1, $t1, 4
+		 	addi $t9, $t9, 4
+		 	beq $t9, $t4, fix_case_8_problem 
 			j init_bombs_idicators_looping
-		 	
-		 	special_case_8_continue:
-		 	addi $t2, $t2, 4
-		 	move $t4, $zero
-		 	addi $t1, $t1, 4
+			
+			fix_case_8_problem:
+		 	move $t9, $zero
 		 	j init_bombs_idicators_looping
 		 	
