@@ -29,12 +29,12 @@
 		jal init_G
 		jal init_M
 		jal place_bombs
-		jal printArray_M
+		#jal printArray_M
 		li $v0, 4
 		la $a0, nw_line
 		syscall
 		jal init_bombs_idicators
-		jal printArray_M
+		#jal printArray_M
 		li $v0, 4
 		la $a0, nw_line
 		syscall
@@ -291,8 +291,8 @@
 		li $t4, 0 #contador de linhas
 		li $t5, '0'
 		loop_printArray_G_u:
-				beq $t0, $t2, out_print_G # se chegar em 100, vai para out_print
-				beq $t0, $t3, print_line_G # se chegar em $t3, vai para print_line
+				beq $t0, $t2, out_print_G_u # se chegar em 100, vai para out_print
+				beq $t0, $t3, print_line_G_u # se chegar em $t3, vai para print_line
 				mul $t6, $t0, 4
 				lw $t6, Array($t6)
 				beq $t6, 9, print_0
